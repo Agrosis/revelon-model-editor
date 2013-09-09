@@ -17,10 +17,11 @@ import javax.swing.JPanel;
 public class TexturePanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	private BufferedImage texture;
-	private Vector3D a, b, c;
+	private Vector3D texs[];
 	int sel = -1;
 	
 	public Model m;
+	private Face f;
 
 	public TexturePanel() {
 		try {
@@ -31,10 +32,6 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 		
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
-		
-		a = new Vector3D();
-		b = new Vector3D(64, 0, 0);
-		c = new Vector3D(0, 64, 0);
 		
 		this.setPreferredSize(new Dimension(256, 256));
 	}
@@ -52,15 +49,41 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 			}
 		}
 		
-		g.setColor(Color.YELLOW);
-		g.drawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y);
-		g.drawLine((int)b.x, (int)b.y, (int)c.x, (int)c.y);
-		g.drawLine((int)a.x, (int)a.y, (int)c.x, (int)c.y);
-		
-		g.setColor(Color.CYAN);
-		g.fillRect((int)a.x - 2, (int)a.y - 2, 4, 4);
-		g.fillRect((int)b.x - 2, (int)b.y - 2, 4, 4);
-		g.fillRect((int)c.x - 2, (int)c.y - 2, 4, 4);
+		if(f != null) {
+			g.setColor(Color.YELLOW);
+			for(int i = 0; i < texs.length; i++) {
+				Vector3D a = texs[i];
+				if(i == (texs.length - 1)) {
+					Vector3D b = texs[0];
+					g.drawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y);
+				} else {
+					Vector3D b = texs[i+1];
+					g.drawLine((int)a.x, (int)a.y, (int)b.x, (int)b.y);
+				}
+			}
+			
+			g.setColor(Color.CYAN);
+			for(int i = 0; i < texs.length; i++) {
+				Vector3D a = texs[i];
+				g.fillRect((int)a.x - 2, (int)a.y - 2, 4, 4);
+			}
+		}
+	}
+	
+	public void newFace(Face f) {
+		this.f = f;
+		if(f.isQuad()) {
+			texs = new Vector3D[4];
+			texs[0] = f.ta.getMultiply(128);
+			texs[1] = f.tb.getMultiply(128);
+			texs[2] = f.tc.getMultiply(128);
+			texs[3] = f.td.getMultiply(128);
+		} else {
+			texs = new Vector3D[3];
+			texs[0] = f.ta.getMultiply(128);
+			texs[1] = f.tb.getMultiply(128);
+			texs[2] = f.tc.getMultiply(128);
+		}
 	}
 
 	@Override
@@ -78,31 +101,23 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	
 		double dist = 100000;
 		
-		if(m.distance(a) < dist) {
-			dist = m.distance(a);
-			if(dist < 4)
-				sel = 0;
-		}
-		if(m.distance(b) < dist) {
-			dist = m.distance(b);
-			if(dist < 4)
-				sel = 1;
-		}
-		if(m.distance(c) < dist) {
-			dist = m.distance(c);
-			if(dist < 4)
-				sel = 2;
+		for(int i = 0; i < texs.length; i++) {
+			if(m.distance(texs[i]) < dist) {
+				dist = m.distance(texs[i]);
+				if(dist < 4)
+					sel = i;
+			}
 		}
 	}
 
 	public void switchCoords() {
-		Vector3D temp = a.copy();
-		a = b.copy();
-		b = c.copy();
-		c = temp.copy();
+		for(int i = 1; i < texs.length; i++) {
+			texs[i] = texs[i-1];
+		}
+		texs[0] = texs[texs.length - 1];
 		
 		if(m != null) {
-			m.setTriangleTextureCoords(a.divide(128), b.divide(128), c.divide(128));
+			m.setCurrentFace(f);
 		}
 	}
 	
@@ -114,19 +129,19 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	@Override
 	public void mouseDragged(MouseEvent me) {
 		if(sel != -1) {
-			if(sel == 0) {
-				a = new Vector3D(me.getX(), me.getY(), 0);
-				a.round();
-			} else if(sel == 1) {
-				b = new Vector3D(me.getX(), me.getY(), 0);
-				b.round();
-			} else if(sel == 2) {
-				c = new Vector3D(me.getX(), me.getY(), 0);
-				c.round();
+			texs[sel] = new Vector3D(me.getX(), me.getY(), 0);
+			texs[sel].round();
+			
+			Vector3D[] nt = new Vector3D[texs.length];
+			for(int i = 0; i < texs.length; i++) {
+				nt[i] = texs[i];
+				nt[i] = nt[i].divide(128);
 			}
 			
+			f.setTextureCoords(nt);
+			
 			if(m != null) {
-				m.setTriangleTextureCoords(a.divide(128), b.divide(128), c.divide(128));
+				m.setCurrentFace(f);
 			}
 			
 			this.repaint();

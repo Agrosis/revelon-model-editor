@@ -16,38 +16,50 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class Model {
 	
-	private ArrayList<Triangle> faces;
-	private Triangle close;
+	private ArrayList<Face> faces;
+	private Face close;
 	
 	private int tid = -1;
+	
+	private TexturePanel tp;
 
-	public Model() {
-		faces = new ArrayList<Triangle>();
+	public Model(TexturePanel tp) {
+		this.tp = tp;
+		faces = new ArrayList<Face>();
 		close = null;
 	}
 	
-	public void addFace(Triangle t) {
+	public void addFace(Face t) {
 		faces.add(t);
 	}
 	
 	public void render(Camera camera) {
 		double cd = 1000000;
 		
+		Face fin = null;
 		for(int i = 0; i < faces.size(); i++) {
-			Triangle t = faces.get(i);
+			Face t = faces.get(i);
 
 			RayIntersection ri = Collisions.rayTriangle(new Ray(camera.getPosition(), camera.getCamDirectionVector()), t.a, t.b, t.c, t.getNormal(), null);
 			if(ri != null) {
 				if(ri.t < cd) {
-					close = t;
+					fin = t;
 					cd = ri.t;
 				}
 				glColor4f(0f, 1f, 0f, 0.9f);
 			}
 		}
 		
+		if(close != fin) {
+			close = fin;
+			if(close != null) {
+				tp.newFace(close);
+				tp.repaint();
+			}
+		}
+		
 		for(int i = 0; i < faces.size(); i++) {
-			Triangle t = faces.get(i);
+			Face t = faces.get(i);
 
 			if(t == close) {
 				glColor4f(0, 1, 0, 0.9f);
@@ -56,22 +68,45 @@ public class Model {
 			}
 			
 			glEnable(GL_TEXTURE_2D);
-			glBegin(GL_TRIANGLES);
-			
-			if(tid != -1) {
-				glBindTexture(GL_TEXTURE_2D, tid);
+			if(t.isQuad()) {
+				glBegin(GL_QUADS);
 				
-				glTexCoord2f((float)t.ta.x, (float)t.ta.y);
-				glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-				glTexCoord2f((float)t.tb.x, (float)t.tb.y);
-				glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-				glTexCoord2f((float)t.tc.x, (float)t.tc.y);
-				glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+				if(tid != -1) {
+					glBindTexture(GL_TEXTURE_2D, tid);
+					
+					glTexCoord2f((float)t.ta.x, (float)t.ta.y);
+					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
+					glTexCoord2f((float)t.tb.x, (float)t.tb.y);
+					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
+					glTexCoord2f((float)t.tc.x, (float)t.tc.y);
+					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+					glTexCoord2f((float)t.td.x, (float)t.td.y);
+					glVertex3f((float)t.d.x, (float)t.d.y, (float)t.d.z);
+				} else {
+					glDisable(GL_TEXTURE_2D);
+					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
+					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
+					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+					glVertex3f((float)t.d.x, (float)t.d.y, (float)t.d.z);
+				}
 			} else {
-				glDisable(GL_TEXTURE_2D);
-				glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-				glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-				glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+				glBegin(GL_TRIANGLES);
+				
+				if(tid != -1) {
+					glBindTexture(GL_TEXTURE_2D, tid);
+					
+					glTexCoord2f((float)t.ta.x, (float)t.ta.y);
+					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
+					glTexCoord2f((float)t.tb.x, (float)t.tb.y);
+					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
+					glTexCoord2f((float)t.tc.x, (float)t.tc.y);
+					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+				} else {
+					glDisable(GL_TEXTURE_2D);
+					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
+					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
+					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
+				}
 			}
 			
 			glEnd();
@@ -90,8 +125,8 @@ public class Model {
 	}
 	
 	@SuppressWarnings("resource")
-	public static Model loadModel(File file) {
-		Model m = new Model();
+	public static Model loadModel(File file, TexturePanel tp) {
+		Model m = new Model(tp);
 
         InputStream fis = null;
         BufferedReader br = null;
@@ -120,15 +155,22 @@ public class Model {
                 float z = Float.valueOf(params[3]);
                 vertexes.add(new Vector3D(x, y, z));
             } else if(data.startsWith("f ")) {
-                Vector3D[] facevtxes = new Vector3D[3];
+                Vector3D[] facevtxes = null;
+                
+                if(params.length == 4)
+                	facevtxes = new Vector3D[3];
+                else
+                	facevtxes = new Vector3D[4];
 
-                for(int f = 0; f < 3; f++) {
+                for(int f = 0; f < params.length-1; f++) {
                 	facevtxes[f] = vertexes.get(Integer.valueOf(params[f+1])-1);
                 }
                 
-                m.addFace(new Triangle(facevtxes[0], facevtxes[1], facevtxes[2]));
+                m.addFace(new Face(facevtxes));
             }
         }
+        
+        tp.m = m;
 		
 		return m;
 	}
@@ -136,11 +178,10 @@ public class Model {
 	public void setTexture(int tid2) {
 		this.tid = tid2;
 	}
-	
-	public void setTriangleTextureCoords(Vector3D a, Vector3D b, Vector3D c) {
-		close.ta = a;
-		close.tb = b;
-		close.tc = c;
+
+	public void setCurrentFace(Face f) {
+		faces.set(faces.indexOf(close), f);
+		close = f;
 	}
 	
 }

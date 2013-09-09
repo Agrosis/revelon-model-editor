@@ -115,7 +115,7 @@ public class ViewInstance implements Runnable {
 	}
 	
 	public void loadModel(File file) {
-		this.model = Model.loadModel(file);
+		this.model = Model.loadModel(file, tpanel);
 		this.model.setTexture(tid);
 		tpanel.m = this.model;
 	}

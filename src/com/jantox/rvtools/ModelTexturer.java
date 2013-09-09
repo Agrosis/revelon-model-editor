@@ -175,9 +175,6 @@ public class ModelTexturer extends JFrame implements ActionListener {
 			e.printStackTrace();
 		}
 		
-		//Triangle t = new Triangle(new Vector3D(0, 0, 0), new Vector3D(35, 0, 0), new Vector3D(35, 35, 0));
-		//t.getNormal().debug();
-		
 		new ModelTexturer().setVisible(true);
 	}
 	
