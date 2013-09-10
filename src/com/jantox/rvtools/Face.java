@@ -50,6 +50,11 @@ public class Face {
 
         Vector3D n = f.crossProduct(g);
         n.normalize();
+        
+        n.x = (float) n.x;
+        n.y = (float) n.y;
+        n.z = (float) n.z;
+        
         return n;
     }
 	

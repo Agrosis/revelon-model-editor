@@ -3,14 +3,11 @@ package com.jantox.rvtools;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-
-import org.newdawn.slick.opengl.TextureLoader;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -67,8 +64,10 @@ public class Model {
 				glColor3f(0.5f, 0.5f, 0.5f);
 			}
 			
-			glEnable(GL_TEXTURE_2D);
 			if(t.isQuad()) {
+				if(!(t.ta == t.tb && t.tb == t.tc && t.tc == t.td))
+					glEnable(GL_TEXTURE_2D);
+				
 				glBegin(GL_QUADS);
 				
 				if(tid != -1) {
@@ -90,6 +89,9 @@ public class Model {
 					glVertex3f((float)t.d.x, (float)t.d.y, (float)t.d.z);
 				}
 			} else {
+				if(!(t.ta == t.tb && t.tb == t.tc))
+					glEnable(GL_TEXTURE_2D);
+				
 				glBegin(GL_TRIANGLES);
 				
 				if(tid != -1) {

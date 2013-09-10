@@ -139,6 +139,12 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	public void mouseDragged(MouseEvent me) {
 		if(sel != -1) {
 			texs[sel] = new Vector3D(me.getX(), me.getY(), 0);
+			
+			if(me.getX() < 0)
+				texs[sel].x = 0;
+			if(me.getY() < 0)
+				texs[sel].y = 0;
+			
 			texs[sel].round();
 			
 			Vector3D[] nt = new Vector3D[texs.length];
