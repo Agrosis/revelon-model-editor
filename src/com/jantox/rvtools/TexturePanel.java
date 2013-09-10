@@ -111,10 +111,19 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	}
 
 	public void switchCoords() {
-		for(int i = 1; i < texs.length; i++) {
-			texs[i] = texs[i-1];
+		Vector3D temp = texs[0].copy();
+		for(int i = 0; i < texs.length-1; i++) {
+			texs[i] = texs[i+1];
 		}
-		texs[0] = texs[texs.length - 1];
+		texs[texs.length-1] = temp.copy();
+		
+		Vector3D[] nt = new Vector3D[texs.length];
+		for(int i = 0; i < texs.length; i++) {
+			nt[i] = texs[i];
+			nt[i] = nt[i].divide(128);
+		}
+		
+		f.setTextureCoords(nt);
 		
 		if(m != null) {
 			m.setCurrentFace(f);
