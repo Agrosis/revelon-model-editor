@@ -1,7 +1,6 @@
 package com.jantox.rvtools;
 
 import java.awt.Canvas;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,15 +18,21 @@ public class ViewInstance implements Runnable {
 	private Camera camera;
 	
 	private Model model;
-	private int tid;
 	
 	private TexturePanel tpanel;
 	
-	public ViewInstance(Canvas canvas, TexturePanel tpanel) {
+	String[] texs;
+	
+	public ViewInstance(Canvas canvas, TexturePanel tpanel, Model m, String[] texs) {
 		this.canvas = canvas;
 		this.camera = new Camera();
 		
+		this.texs = texs;
+		
 		this.tpanel = tpanel;
+		
+		this.model = m;
+		tpanel.setModel(model);
 	}
 
 	public void initGL() {
@@ -48,6 +53,17 @@ public class ViewInstance implements Runnable {
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+        
+
+		for(int i = 0; i < texs.length; i++) {
+			try {
+				TextureLoader.getTexture("PNG", new FileInputStream("textures/" + texs[i])).getTextureID();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	
 	@Override
@@ -61,14 +77,6 @@ public class ViewInstance implements Runnable {
 		
 		this.initGL();
 		
-		try {
-			this.tid = TextureLoader.getTexture("PNG", new FileInputStream("texture.png")).getTextureID();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
 		while(true) {
 			this.update();
 			render();
@@ -78,8 +86,16 @@ public class ViewInstance implements Runnable {
 		}
 	}
 	
+	Face cf = null;
+	
 	public void update() {
 		camera.update();
+		
+		Face f = model.getIntersectedFace(camera);
+		if(f != cf && f != null) {
+			cf = f;
+			tpanel.newFace(f);
+		}
 	}
 	
 	public void render() {
@@ -111,12 +127,6 @@ public class ViewInstance implements Runnable {
 	    glEnd();
 	    
 	    glPopMatrix();
-	}
-	
-	public void loadModel(File file) {
-		this.model = Model.loadModel(file, tpanel);
-		this.model.setTexture(tid);
-		tpanel.m = this.model;
 	}
 
 }

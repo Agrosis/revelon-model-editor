@@ -9,6 +9,7 @@ import java.io.File;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -31,7 +32,7 @@ public class ModelAssembler extends JFrame implements ActionListener {
 	private Canvas canvas;
 	
 	private ViewInstance vinstance;
-	private TexturePanel tpanel;
+	private TextureEditor teditor;
 	
 	// view options
 	JTextField planew, planeh;
@@ -40,9 +41,15 @@ public class ModelAssembler extends JFrame implements ActionListener {
 	JRadioButton first;
 	JRadioButton third;
 	
-	JButton rotate;
+	JCheckBox highlight;
+	
+	PartEditor pe;
+	
+	private Model m;
+	String texs[];
 	
 	public ModelAssembler() {
+		this.m = new Model();
 		this.createGUI();
 	}
 	
@@ -96,9 +103,13 @@ public class ModelAssembler extends JFrame implements ActionListener {
 		
 		first = new JRadioButton("First Person Camera");
 		third = new JRadioButton("Third Person Camera");
+		highlight = new JCheckBox("Highlight Selected Face");
+		highlight.setSelected(true);
+		highlight.addActionListener(this);
 		
 		campanel.add(first, BorderLayout.NORTH);
 		campanel.add(third, BorderLayout.CENTER);
+		campanel.add(highlight, BorderLayout.SOUTH);
 		
 		JPanel toplayer = new JPanel();
 		toplayer.setLayout(new BorderLayout());
@@ -108,17 +119,16 @@ public class ModelAssembler extends JFrame implements ActionListener {
 		
 		JPanel tpp = new JPanel();
 		
-		tpanel = new TexturePanel();
-		tpp.add(tpanel);
+		texs = new File("textures/").list();
 		
+		teditor = new TextureEditor(m, texs);
+		tpp.add(teditor);
+		
+		pe = new PartEditor(m);
 		JTabbedPane opts = new JTabbedPane();
-		opts.addTab("Texture", tpp);
-		opts.addTab("PART Modifer", new JPanel());
-		
-		JButton rotate = new JButton("Rotate");
-		rotate.setActionCommand("rotate");
-		rotate.addActionListener(this);
-		tpp.add(rotate);
+		opts.addTab("PART Editor", pe);
+		opts.addTab("Texture Editor", tpp);
+		opts.addTab("Animation Editor", new JPanel());
 		
 		options.add(toplayer, BorderLayout.NORTH);
 		options.add(opts, BorderLayout.CENTER);
@@ -138,28 +148,25 @@ public class ModelAssembler extends JFrame implements ActionListener {
 		
 		JMenuBar jmb = new JMenuBar();
 		
-		JMenu model = new JMenu("Model");
+		JMenu model = new JMenu("File");
 		JMenuItem imdl = new JMenuItem("Load OBJ Model");
 		imdl.setActionCommand("loadobj");
 		imdl.addActionListener(this);
 		imdl.setAccelerator(KeyStroke.getKeyStroke("control O"));
 		
-		JMenu txm = new JMenu("Texture");
-		JMenuItem optx = new JMenuItem("Open PNG Texture");
-		optx.setActionCommand("loadtex");
-		optx.addActionListener(this);
-		optx.setAccelerator(KeyStroke.getKeyStroke("control T"));
+		JMenuItem exp = new JMenuItem("Export OBJ Model");
+		exp.setActionCommand("export");
+		exp.addActionListener(this);
+		exp.setAccelerator(KeyStroke.getKeyStroke("control E"));
 		
 		model.add(imdl);
-		
-		txm.add(optx);
+		model.add(exp);
 		
 		jmb.add(model);
-		jmb.add(txm);
 		
 		this.setJMenuBar(jmb);
 		
-		vinstance = new ViewInstance(canvas, tpanel);
+		vinstance = new ViewInstance(canvas, teditor.tpanel, m, texs);
 		Thread t = new Thread(vinstance);
 		t.start();
 	}
@@ -182,17 +189,23 @@ public class ModelAssembler extends JFrame implements ActionListener {
 	}
 	
 	final JFileChooser fc = new JFileChooser();
+	
+	public void loadModel(File file) {
+		pe.newPart(Model.loadPart(file));
+	}
 
 	@Override
 	public void actionPerformed(ActionEvent ae) {
-		if(ae.getActionCommand().equals("rotate")) {
-			this.tpanel.switchCoords();
+		if(ae.getActionCommand().equals("export")) {
+			new Export(m, texs).setVisible(true);
+		} else if(ae.getSource().equals(highlight)) {
+			Part.HIGHLIGHT = !Part.HIGHLIGHT;
 		} else {
 			int returnVal = fc.showOpenDialog(this);
 	
 	        if (returnVal == JFileChooser.APPROVE_OPTION) {
 	            File file = fc.getSelectedFile();
-	            vinstance.loadModel(file);
+	            this.loadModel(file);
 	        }
 		}
 	}

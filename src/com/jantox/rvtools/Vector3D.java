@@ -101,4 +101,8 @@ public class Vector3D {
 		return new Vector3D(x / f, y / f, z / f);
 	}
 	
+	public boolean equals(Vector3D a) {
+		return Math.abs(a.x - x) <= 1e-4 && Math.abs(a.y - y) <= 1e-4 && Math.abs(a.z - z) <= 1e-4;
+	}
+	
 }

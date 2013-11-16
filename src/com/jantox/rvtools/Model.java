@@ -12,123 +12,33 @@ import java.util.ArrayList;
 import static org.lwjgl.opengl.GL11.*;
 
 public class Model {
-	
-	private ArrayList<Face> faces;
-	private Face close;
-	
-	private int tid = -1;
-	
-	private TexturePanel tp;
 
-	public Model(TexturePanel tp) {
-		this.tp = tp;
-		faces = new ArrayList<Face>();
-		close = null;
+	private ArrayList<Part> parts;
+	
+	public Model() {
+		this.parts = new ArrayList<Part>();
 	}
 	
-	public void addFace(Face t) {
-		faces.add(t);
+	public void addPart(Part p) {
+		parts.add(p);
 	}
 	
 	public void render(Camera camera) {
-		double cd = 1000000;
-		
-		Face fin = null;
-		for(int i = 0; i < faces.size(); i++) {
-			Face t = faces.get(i);
-
-			RayIntersection ri = Collisions.rayTriangle(new Ray(camera.getPosition(), camera.getCamDirectionVector()), t.a, t.b, t.c, t.getNormal(), null);
-			if(ri != null) {
-				if(ri.t < cd) {
-					fin = t;
-					cd = ri.t;
-				}
-				glColor4f(0f, 1f, 0f, 0.9f);
-			}
+		for(int i = 0; i < parts.size(); i++) {
+			if(parts.get(i).isVisible())
+				parts.get(i).render(camera);
 		}
 		
-		if(close != fin) {
-			close = fin;
-			if(close != null) {
-				tp.newFace(close);
-				tp.repaint();
-			}
-		}
-		
-		for(int i = 0; i < faces.size(); i++) {
-			Face t = faces.get(i);
-
-			if(t == close) {
-				glColor4f(0, 1, 0, 0.9f);
-			} else {
-				glColor3f(0.5f, 0.5f, 0.5f);
-			}
-			
-			if(t.isQuad()) {
-				if(!(t.ta == t.tb && t.tb == t.tc && t.tc == t.td))
-					glEnable(GL_TEXTURE_2D);
-				
-				glBegin(GL_QUADS);
-				
-				if(tid != -1) {
-					glBindTexture(GL_TEXTURE_2D, tid);
-					
-					glTexCoord2f((float)t.ta.x, (float)t.ta.y);
-					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-					glTexCoord2f((float)t.tb.x, (float)t.tb.y);
-					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-					glTexCoord2f((float)t.tc.x, (float)t.tc.y);
-					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-					glTexCoord2f((float)t.td.x, (float)t.td.y);
-					glVertex3f((float)t.d.x, (float)t.d.y, (float)t.d.z);
-				} else {
-					glDisable(GL_TEXTURE_2D);
-					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-					glVertex3f((float)t.d.x, (float)t.d.y, (float)t.d.z);
-				}
-			} else {
-				if(!(t.ta == t.tb && t.tb == t.tc))
-					glEnable(GL_TEXTURE_2D);
-				
-				glBegin(GL_TRIANGLES);
-				
-				if(tid != -1) {
-					glBindTexture(GL_TEXTURE_2D, tid);
-					
-					glTexCoord2f((float)t.ta.x, (float)t.ta.y);
-					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-					glTexCoord2f((float)t.tb.x, (float)t.tb.y);
-					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-					glTexCoord2f((float)t.tc.x, (float)t.tc.y);
-					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-				} else {
-					glDisable(GL_TEXTURE_2D);
-					glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-					glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-					glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-				}
-			}
-			
-			glEnd();
-			glDisable(GL_TEXTURE_2D);
-			
-			glColor3f(0,0,0);
-			glBegin(GL_LINES);
-			glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-			glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-			glVertex3f((float)t.b.x, (float)t.b.y, (float)t.b.z);
-			glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-			glVertex3f((float)t.c.x, (float)t.c.y, (float)t.c.z);
-			glVertex3f((float)t.a.x, (float)t.a.y, (float)t.a.z);
-			glEnd();
-		}
+		glColor3f(0,1,1);
+		glBegin(GL_LINES);
+		glVertex3f(-16, 5, 0);
+		glVertex3f(16, 5, 0);
+		glEnd();
 	}
 	
 	@SuppressWarnings("resource")
-	public static Model loadModel(File file, TexturePanel tp) {
-		Model m = new Model(tp);
+	public static Part loadPart(File file) {
+		Part p = new Part();
 
         InputStream fis = null;
         BufferedReader br = null;
@@ -161,29 +71,65 @@ public class Model {
                 
                 if(params.length == 4)
                 	facevtxes = new Vector3D[3];
-                else
+                else if(params.length == 5)
                 	facevtxes = new Vector3D[4];
 
                 for(int f = 0; f < params.length-1; f++) {
                 	facevtxes[f] = vertexes.get(Integer.valueOf(params[f+1])-1);
                 }
                 
-                m.addFace(new Face(facevtxes));
+                p.addFace(new Face(facevtxes));
             }
         }
         
-        tp.m = m;
+	    return p;
+	}
+	
+	public Face getIntersectedFace(Camera camera) {
+		Face best = null;
+		double d = 1000000;
 		
-		return m;
+		for(int i = 0; i < parts.size(); i++) {
+			Face t = parts.get(i).getIntersect(camera);
+			
+			if(t != null) {
+				if(t.isQuad()) {
+					RayIntersection ri = Collisions.rayQuad(new Ray(camera.getPosition(), camera.getCamDirectionVector()), t.a, t.b, t.c, t.d, t.getNormal(), null);
+					if(ri != null) {
+						if(ri.t < d) {
+							d = ri.t;
+							best = t;
+						}
+					}
+				} else {
+					RayIntersection ri = Collisions.rayTriangle(new Ray(camera.getPosition(), camera.getCamDirectionVector()), t.a, t.b, t.c, t.getNormal(), null);
+					if(ri != null) {
+						if(ri.t < d) {
+							d = ri.t;
+							best = t;
+						}
+					}
+				}
+			}
+		}
+		
+		return best;
 	}
 
-	public void setTexture(int tid2) {
-		this.tid = tid2;
+	public void visibility(int i) {
+		parts.get(i).setVisible(!parts.get(i).isVisible());
 	}
 
-	public void setCurrentFace(Face f) {
-		faces.set(faces.indexOf(close), f);
-		close = f;
+	public Part getPart(int index) {
+		return parts.get(index);
+	}
+
+	public void remove(int i) {
+		parts.remove(i);
+	}
+
+	public int getPartSize() {
+		return parts.size();
 	}
 	
 }

@@ -17,23 +17,30 @@ import javax.swing.JPanel;
 public class TexturePanel extends JPanel implements MouseListener, MouseMotionListener {
 	
 	private BufferedImage texture;
-	private Vector3D texs[];
+	
+	Vector3D texs[];
 	int sel = -1;
 	
 	public Model m;
 	private Face f;
+	
+	int tex = -1;
 
 	public TexturePanel() {
-		try {
-			this.texture = ImageIO.read(new File("texture.png"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
 		this.addMouseListener(this);
 		this.addMouseMotionListener(this);
 		
 		this.setPreferredSize(new Dimension(256, 256));
+	}
+	
+	public void setTexture(BufferedImage bi, int tex) {
+		this.tex = tex;
+		this.texture = bi;
+		if(f != null) {
+			f.setTexture(tex);
+		}
+		
+		this.repaint();
 	}
 	
 	public void paint(Graphics g) {
@@ -84,6 +91,8 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 			texs[1] = f.tb.getMultiply(128);
 			texs[2] = f.tc.getMultiply(128);
 		}
+		
+		this.repaint();
 	}
 
 	@Override
@@ -101,11 +110,13 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	
 		double dist = 100000;
 		
-		for(int i = 0; i < texs.length; i++) {
-			if(m.distance(texs[i]) < dist) {
-				dist = m.distance(texs[i]);
-				if(dist < 4)
-					sel = i;
+		if(texs != null) {
+			for(int i = 0; i < texs.length; i++) {
+				if(m.distance(texs[i]) < dist) {
+					dist = m.distance(texs[i]);
+					if(dist < 4)
+						sel = i;
+				}
 			}
 		}
 	}
@@ -124,10 +135,6 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 		}
 		
 		f.setTextureCoords(nt);
-		
-		if(m != null) {
-			m.setCurrentFace(f);
-		}
 	}
 	
 	@Override
@@ -154,10 +161,7 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 			}
 			
 			f.setTextureCoords(nt);
-			
-			if(m != null) {
-				m.setCurrentFace(f);
-			}
+			f.setTexture(this.tex);
 			
 			this.repaint();
 		}
@@ -167,5 +171,46 @@ public class TexturePanel extends JPanel implements MouseListener, MouseMotionLi
 	public void mouseMoved(MouseEvent arg0) {
 		
 	}
+
+	public void setModel(Model model) {
+		this.m = model;
+	}
+
+	public void shift(int i) {
+		if(texs != null) {
+			if(i == 0) {
+				for(int x = 0; x < texs.length; x++) {
+					texs[x].y -=16;
+				}
+			} else if(i == 1) {
+				for(int x = 0; x < texs.length; x++) {
+					texs[x].x +=16;
+				}
+			} else if(i == 2) {
+				for(int x = 0; x < texs.length; x++) {
+					texs[x].y +=16;
+				}
+			} else if(i == 3) {
+				for(int x = 0; x < texs.length; x++) {
+					texs[x].x -= 16;
+				}
+			}
+			
+			Vector3D[] nt = new Vector3D[texs.length];
+			for(int x = 0; x < texs.length; x++) {
+				nt[x] = texs[x];
+				nt[x] = nt[x].divide(128);
+			}
+			
+			f.setTextureCoords(nt);
+			
+			this.repaint();
+		}
+	}
+
+	public void setTextureRepeat(int i, int j) {
+		f.tx = i;
+		f.ty = j;
+	} 
 	
 }

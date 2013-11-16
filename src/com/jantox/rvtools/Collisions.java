@@ -5,7 +5,10 @@ public class Collisions {
 	public static RayIntersection rayQuad(Ray r, Vector3D a, Vector3D b, Vector3D c, Vector3D d, Vector3D n, Vector3D col) {
         RayIntersection ri = rayPlane(r, a, n, col);
         if(ri != null) {
-            if(pointTriangle(ri.r, a, b, c) || pointTriangle(ri.r, b, c, d)) {
+            if(pointTriangle(ri.r, a, b, c)) {
+                return ri;
+            }
+            if(pointTriangle(ri.r, b, c, d)) {
                 return ri;
             }
         }
